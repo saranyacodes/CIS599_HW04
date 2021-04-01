@@ -18,7 +18,7 @@ export default class ExpansionRules {
     B() { 
         let rand = Math.random(); 
         if (rand < 0.35) return '[AB][^+AB]'
-        else return '[+AB][^+AB][^^+AB]';
+        else return '[^+AB][+AB][^^+AB]';
     }
 
     expand(phrase: string) {

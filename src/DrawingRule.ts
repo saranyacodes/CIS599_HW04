@@ -1,7 +1,7 @@
 import {vec3, vec4, mat4} from 'gl-matrix';
 import Turtle from './Turtle';
 
-function randRange(a: number, b: number) {
+function randomRange(a: number, b: number) {
     return a + Math.random() * (b - a);
 }
 
@@ -41,12 +41,12 @@ export default class DrawingRule {
 
     rotateRight(a: number, b: number) {
         let turtle = this.turtleStack[this.turtleStack.length - 1];
-        turtle.rotateRight(randRange(a, b));
+        turtle.rotateRight(randomRange(a, b));
     }
 
     rotateUp(a: number, b: number) {
         let turtle = this.turtleStack[this.turtleStack.length - 1];
-        turtle.rotateUp(randRange(a, b));
+        turtle.rotateUp(randomRange(a, b));
     }
 
     push() {
@@ -66,7 +66,7 @@ export default class DrawingRule {
         vec3.cross(forward, turtle.right, turtle.orientation);
 
         let endBranchTurtle = Turtle.clone(turtle);
-        endBranchTurtle.moveForward(randRange(a, b));
+        endBranchTurtle.moveForward(randomRange(a, b));
         let branch = vec3.create();
         vec3.subtract(branch, endBranchTurtle.position, turtle.position);
         this.turtleStack.push(endBranchTurtle);
@@ -135,7 +135,7 @@ export default class DrawingRule {
         //replace default length with actual size of the mesh (hardcoded to the leaf size)
         //make obj file align with the y axis 
         let turtle = this.turtleStack[this.turtleStack.length - 1];
-         turtle.rotateUp(randRange(-180, 180));
+         turtle.rotateUp(randomRange(-180, 180));
 
         //create translate mat4-- should be position of currTurtle above
         let T = mat4.create(); 
@@ -183,7 +183,7 @@ export default class DrawingRule {
 
     drawBranchEnd() {
         let turtle = this.turtleStack[this.turtleStack.length - 1];
-        let adding = randRange(-3, 3);
+        let adding = randomRange(-3, 3);
         let depthLength = 0.5 / Math.exp(turtle.depth / 5);
         let rand = Math.random(); 
         let numSegments = rand * 5 + 20;
@@ -204,7 +204,7 @@ export default class DrawingRule {
     }
 
     drawAngle(a: number, b: number) {
-        let angle = randRange(a, b);
+        let angle = randomRange(a, b);
         let numSegments = 10;
         for(let i = 0; i < numSegments; i++) {
             this.rotateRight(angle / numSegments, angle / numSegments);
