@@ -130,6 +130,12 @@ function main() {
     new Shader(gl.FRAGMENT_SHADER, require('./shaders/instanced-lambert-frag.glsl')),
   ]);
 
+  //colorful background flat 
+  const backgroundFlat = new ShaderProgram([
+    new Shader(gl.VERTEX_SHADER, require('./shaders/flat-bg-vert.glsl')),
+    new Shader(gl.FRAGMENT_SHADER, require('./shaders/flat-bg-frag.glsl')),
+  ]);
+
   const flat = new ShaderProgram([
     new Shader(gl.VERTEX_SHADER, require('./shaders/flat-vert.glsl')),
     new Shader(gl.FRAGMENT_SHADER, require('./shaders/flat-frag.glsl')),
@@ -211,7 +217,7 @@ function redrawLsystem(thick: boolean) {
       
     }
 
-    renderer.render(camera, flat, [screenQuad]);
+    renderer.render(camera, backgroundFlat, [screenQuad]);
 
     //based on the shader type we should update the render 
     if (controls.shader_type == 1) {
