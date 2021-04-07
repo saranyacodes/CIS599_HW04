@@ -5,6 +5,8 @@ uniform vec3 u_Eye, u_Ref, u_Up;
 uniform vec2 u_Dimensions;
 uniform float u_Time;
 
+uniform float u_SkyType; //sky type! 
+
 in vec2 fs_Pos;
 out vec4 out_Col;
 
@@ -133,9 +135,20 @@ vec4 getMorningColor(vec3 rayDir) {
     vec3 noonColor = uvToNoon(uv);
     vec3 sunriseColor = uvToSunrise(uv);
 
-  vec3 outColor =  mix(sunriseColor, duskColor,  u_Dimensions.y - fs_Pos.y );
-    //vec3 outColor =  mix(noonColor, duskColor,  u_Dimensions.y - fs_Pos.y );
-  //  vec3 outColor =  mix(sunsetColor, noonColor * 0.15,  u_Dimensions.y + fs_Pos.y );
+    //blue sky 
+    vec3 outColor =  mix(noonColor, duskColor,  u_Dimensions.y - fs_Pos.y );
+
+    if (u_SkyType == 1.) {
+        //blue sky 
+        outColor =  mix(noonColor, duskColor,  u_Dimensions.y - fs_Pos.y );
+    } else if (u_SkyType == 2.) {
+        //orange horizon 
+        outColor =  mix(sunriseColor, duskColor,  u_Dimensions.y - fs_Pos.y );
+    } else if (u_SkyType == 3.) {
+        //magenta night 
+        outColor =  mix(sunsetColor, noonColor * 0.15,  u_Dimensions.y + fs_Pos.y );
+    }
+
     return vec4(outColor, 1.0); 
 
 

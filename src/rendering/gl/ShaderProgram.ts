@@ -29,7 +29,9 @@ class ShaderProgram {
   attrMatrixC0: number; //added for instanced matrices 
   attrMatrixC1: number; //added for instanced matrices 
   attrMatrixC2: number; //added for instanced matrices 
-  attrMatrixC3: number; //added for instanced matrices 
+  attrMatrixC3: number; //added for instanced matrices
+  
+  unifSkyType: WebGLUniformLocation; //added for sky type 
 
   unifModel: WebGLUniformLocation;
   unifModelInvTr: WebGLUniformLocation;
@@ -65,6 +67,7 @@ class ShaderProgram {
     this.unifEye   = gl.getUniformLocation(this.prog, "u_Eye");
     this.unifRef   = gl.getUniformLocation(this.prog, "u_Ref");
     this.unifUp   = gl.getUniformLocation(this.prog, "u_Up");
+    this.unifSkyType = gl.getUniformLocation(this.prog, "u_SkyType"); //added this for sky type
 
     this.attrMatrixC0 = gl.getAttribLocation(this.prog, "vs_Matrix_col0"); //added for instanced matrix transformations
     this.attrMatrixC1 = gl.getAttribLocation(this.prog, "vs_Matrix_col1");
@@ -131,6 +134,14 @@ class ShaderProgram {
     this.use();
     if (this.unifTime !== -1) {
       gl.uniform1f(this.unifTime, t);
+    }
+  }
+
+  //added this
+  setSkyType(num: number) {
+    this.use();
+    if(this.unifSkyType !== -1) {
+      gl.uniform1f(this.unifSkyType, num);
     }
   }
 

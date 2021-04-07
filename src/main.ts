@@ -28,6 +28,7 @@ const controls = {
   thick_branch: false, 
   leaf_type: 1,
   shader_type: 1, 
+  background_type: 1, 
 
   get LeafColor() { return hex2vec4(this.leaves_color); },
   get BranchColor() { return hex2vec4(this.branch_color); },
@@ -96,6 +97,7 @@ function main() {
   gui.add(controls, "thick_branch"); 
   gui.add(controls, "leaf_type", {Leaf: 1, Roses: 2, Stars: 3}); 
   gui.add(controls, "shader_type", {Lambert: 1, Flat: 2}); 
+  gui.add(controls, "background_type", {Blue_Sky: 1, Orange_Horizon: 2, Purple_Night: 3}); 
   console.log("leaftype", controls.leaf_type); 
 
   // get canvas and webgl context
@@ -217,6 +219,8 @@ function redrawLsystem(thick: boolean) {
       
     }
 
+    //set the sky type 
+    backgroundFlat.setSkyType(controls.background_type); 
     renderer.render(camera, backgroundFlat, [screenQuad]);
 
     //based on the shader type we should update the render 
