@@ -27,6 +27,7 @@ const controls = {
   branch_color: '#7d5757',
   thick_branch: false, 
   leaf_type: 1,
+  shader_type: 1, 
 
   get LeafColor() { return hex2vec4(this.leaves_color); },
   get BranchColor() { return hex2vec4(this.branch_color); },
@@ -94,6 +95,7 @@ function main() {
   gui.addColor(controls, "branch_color");
   gui.add(controls, "thick_branch"); 
   gui.add(controls, "leaf_type", {Leaf: 1, Roses: 2, Stars: 3}); 
+  gui.add(controls, "shader_type", {Lambert: 1, Flat: 2}); 
   console.log("leaftype", controls.leaf_type); 
 
   // get canvas and webgl context
@@ -120,6 +122,12 @@ function main() {
   const instancedMatShader = new ShaderProgram([
     new Shader(gl.VERTEX_SHADER, require('./shaders/instanced-mat-vert.glsl')),
     new Shader(gl.FRAGMENT_SHADER, require('./shaders/instanced-mat-frag.glsl')),
+  ]);
+
+  //lambert
+  const instancedLambertShader = new ShaderProgram([
+    new Shader(gl.VERTEX_SHADER, require('./shaders/instanced-lambert-vert.glsl')),
+    new Shader(gl.FRAGMENT_SHADER, require('./shaders/instanced-lambert-frag.glsl')),
   ]);
 
   const flat = new ShaderProgram([
@@ -204,7 +212,20 @@ function redrawLsystem(thick: boolean) {
     }
 
     renderer.render(camera, flat, [screenQuad]);
-    renderer.render(camera, instancedMatShader, [lsystem.branchesGeom, lsystem.leafGeom]); //my test tree
+
+    //based on the shader type we should update the render 
+    if (controls.shader_type == 1) {
+      //1 --> lambert 
+      renderer.render(camera, instancedLambertShader, [lsystem.branchesGeom, lsystem.leafGeom]); //my test tree
+    } else if (controls.shader_type == 2) {
+      //2 --> flat 
+      renderer.render(camera, instancedMatShader, [lsystem.branchesGeom, lsystem.leafGeom]); //my test tree
+    } else {
+      //default to lambert
+      renderer.render(camera, instancedLambertShader, [lsystem.branchesGeom, lsystem.leafGeom]); //my test tree
+    }
+
+
     stats.end();
 
     // Tell the browser to call `tick` again whenever it renders a new frame

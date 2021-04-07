@@ -189,10 +189,10 @@ export default class DrawingRule {
         let numSegments = rand * 5 + 20;
         for (let i = 0; i < numSegments; i++) {
             this.drawBranch(depthLength * (1 - i / numSegments), depthLength * (1 - i / numSegments));
-            this.rotateUp(adding, adding);
-            if (rand > 0.5) {
-                this.rotateRight(10, 15);
-            }
+            // this.rotateUp(adding, adding);
+            // if (rand > 0.5) {
+            //     this.rotateRight(10, 15);
+            // }
            
         }
     }
