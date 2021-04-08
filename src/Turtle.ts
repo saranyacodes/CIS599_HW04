@@ -5,13 +5,15 @@ export default class Turtle {
     position: vec3;
     orientation: vec3;
     right: vec3;
+    forward: vec3; 
     step: number;
     depth: number;
 
-    constructor(pos: vec3, orient: vec3, right: vec3, step: number, depth: number) {
-        this.position = vec3.clone(pos);
-        this.orientation = vec3.clone(orient);
+    constructor(position: vec3, orientation: vec3, right: vec3, forward: vec3, step: number, depth: number) {
+        this.position = vec3.clone(position);
+        this.orientation = vec3.clone(orientation);
         this.right = vec3.clone(right);
+        this.forward = vec3.clone(forward); 
         this.step = step;
         this.depth = depth;
     }
@@ -20,6 +22,7 @@ export default class Turtle {
         let copyTurtle = new Turtle(inputTurtle.position,
                                  inputTurtle.orientation,
                                  inputTurtle.right,
+                                 inputTurtle.forward,
                                  inputTurtle.step,
                                  inputTurtle.depth);
         return copyTurtle;
@@ -38,6 +41,7 @@ export default class Turtle {
         let rotX: quat = quat.create();
         quat.setAxisAngle(rotX, this.right, angle);
         vec3.transformQuat(this.orientation, this.orientation, rotX);
+        vec3.transformQuat(this.forward, this.forward, rotX);
         //also have to rotate "upTemp" by rotX
     }
 
@@ -46,11 +50,22 @@ export default class Turtle {
         let rotY: quat = quat.create();
         quat.setAxisAngle(rotY, this.orientation, angle);
         vec3.transformQuat(this.right, this.right, rotY);
+        vec3.transformQuat(this.forward, this.forward, rotY);
         //also have to rotate "upTemp" by rotY
-    }
+    } 
+
+    rotateForward(angle: number) {
+        angle = angle * Math.PI / 180;
+        let rotZ: quat = quat.create();
+        quat.setAxisAngle(rotZ, this.forward, angle);
+
+        vec3.transformQuat(this.right, this.right, rotZ);
+        vec3.transformQuat(this.orientation, this.orientation, rotZ);
+        
+    } 
 
     //Z rotation kind of
-    // rotateUpTemp(ang: number) {
+    // rot ateUpTemp(ang: number) {
     //     ang = ang * Math.PI / 180;
     //     let rotZ: quat = quat.create();
     //     //upTemp would START as (0, 0, 1)

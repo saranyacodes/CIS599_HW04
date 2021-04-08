@@ -18,9 +18,10 @@ export default class DrawingRule {
     thick: boolean = false; 
 
     constructor(iter: number) {
-        let turtle = new Turtle(vec3.fromValues(0, 0, 0), 
-                             vec3.fromValues(0, 1, 0), 
-                             vec3.fromValues(1, 0, 0),
+        let turtle = new Turtle(vec3.fromValues(0, 0, 0), //pos
+                             vec3.fromValues(0, 1, 0), //orient
+                             vec3.fromValues(1, 0, 0), //right 
+                             vec3.fromValues(0, 0, 1), //forward
                              1, 
                              0);
         this.turtleStack.push(turtle);
@@ -30,6 +31,7 @@ export default class DrawingRule {
         this.drawingRules.set(']', this.pop.bind(this));
         this.drawingRules.set('>', this.rotateRight.bind(this, 3, 10));
         this.drawingRules.set('^', this.rotateUp.bind(this, 100, 140));
+        this.drawingRules.set('<', this.rotateForward.bind(this, 5, 10)); 
 
         this.iteration = iter;
     }
@@ -47,6 +49,11 @@ export default class DrawingRule {
     rotateUp(a: number, b: number) {
         let turtle = this.turtleStack[this.turtleStack.length - 1];
         turtle.rotateUp(randomRange(a, b));
+    }
+    
+    rotateForward(a: number, b: number) {
+        let turtle = this.turtleStack[this.turtleStack.length - 1];
+        turtle.rotateForward(randomRange(a, b));
     }
 
     push() {
@@ -80,7 +87,7 @@ export default class DrawingRule {
         //HAVE THIS CODE IF "thin tree" is ticked
         if (!this.thick) {
             let position = vec3.create();
-            let s =  1 / Math.pow(1.2, this.iteration);
+            let s =  1 / Math.pow(1.25, this.iteration); //to make it thinner, make the first argument bigger (in the math.pow)
             branchLen = branchLen * s;
             branchScale = branchScale * s;
             vec3.scale(position, turtle.position, s);

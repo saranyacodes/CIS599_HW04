@@ -22,10 +22,12 @@ function hex2vec4(col: string) {
 const controls = {
   iterations: 6,
   leaf_density: 0.5,
-  branch_angle: 60,
+  growth_angle: 60,
   leaves_color: '#107027',
   branch_color: '#7d5757',
   thick_branch: false, 
+  dense_tree_top: false,
+  wacky_tree: false,
   leaf_type: 1,
   shader_type: 1, 
   background_type: 1, 
@@ -69,11 +71,11 @@ function loadScene() {
   square.setInstanceVBOs(offsets, colors);
   square.setNumInstances(n * n); // grid of "particles"
 
-  lsystem = new LSystem('./obj/cylinderTest.obj', leafType1);
+  lsystem = new LSystem('./obj/cylinderTest.obj', leafType1); 
   lsystem.branchCol = controls.BranchColor;
   lsystem.leafCol = controls.LeafColor;
   lsystem.leafDensity = controls.leaf_density;
-  lsystem.branchAngle = controls.branch_angle;
+  lsystem.branchAngle = controls.growth_angle;
   lsystem.processLsystem(controls.iterations);
 
 }
@@ -91,10 +93,12 @@ function main() {
   const gui = new DAT.GUI();
   gui.add(controls, "iterations", 0, 8).step(1);
   gui.add(controls, "leaf_density", 0, 1);
-  gui.add(controls, "branch_angle", 0, 180);
+  gui.add(controls, "growth_angle", 0, 180);
   gui.addColor(controls, "leaves_color");
   gui.addColor(controls, "branch_color");
   gui.add(controls, "thick_branch"); 
+  gui.add(controls, "dense_tree_top"); 
+  gui.add(controls, "wacky_tree"); 
   gui.add(controls, "leaf_type", {Leaf: 1, Roses: 2, Stars: 3}); 
   gui.add(controls, "shader_type", {Lambert: 1, Flat: 2}); 
   gui.add(controls, "background_type", {Blue_Sky: 1, Orange_Horizon: 2, Purple_Night: 3}); 
@@ -155,10 +159,12 @@ function redrawLsystem(thick: boolean) {
   }
   lsystem = new LSystem('./obj/cylinderTest.obj', leafString);
   lsystem.setThick(thick); 
+  lsystem.expRules.setTreeWacky(controls.wacky_tree);
+  lsystem.expRules.setDenseTreeTops(controls.dense_tree_top); 
   lsystem.branchCol = controls.BranchColor;
   lsystem.leafCol = controls.LeafColor;
   lsystem.leafDensity = controls.leaf_density;
-  lsystem.branchAngle = controls.branch_angle;
+  lsystem.branchAngle = controls.growth_angle;
   lsystem.processLsystem(controls.iterations);
 }
 
@@ -176,8 +182,8 @@ function redrawLsystem(thick: boolean) {
       redrawLsystem(controls.thick_branch); 
     }
 
-    if(lsystem.branchAngle != controls.branch_angle) {
-      lsystem.branchAngle = controls.branch_angle;
+    if(lsystem.branchAngle != controls.growth_angle) {
+      lsystem.branchAngle = controls.growth_angle;
       redrawLsystem(controls.thick_branch); 
     }
 
@@ -201,6 +207,7 @@ function redrawLsystem(thick: boolean) {
       redrawLsystem(controls.thick_branch); 
     }
 
+
     //leaftype
     if (controls.leaf_type != lsystem.leafType) {
       lsystem.leafType = controls.leaf_type;
@@ -217,6 +224,11 @@ function redrawLsystem(thick: boolean) {
         lsystem.render(); 
       }
       
+    }
+
+    //other booleans
+    if (lsystem.expRules.treeWacky != controls.wacky_tree || lsystem.expRules.denseTreeTops != controls.dense_tree_top) {
+      redrawLsystem(controls.thick_branch);
     }
 
     //set the sky type 

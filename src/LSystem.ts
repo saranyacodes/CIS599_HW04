@@ -27,6 +27,14 @@ export default class LSystem {
         this.leafObj = leafObj;
     }
 
+    setWacky(val: boolean) {
+        this.expRules.treeWacky = val; 
+    }
+
+    getWacky() {
+        return this.expRules.treeWacky; 
+    }
+
     setThick(val: boolean) {
         this.drawRules.thick = val; 
     }

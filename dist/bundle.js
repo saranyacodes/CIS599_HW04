@@ -6062,11 +6062,15 @@ function hex2vec4(col) {
 const controls = {
     iterations: 6,
     leaf_density: 0.5,
-    branch_angle: 60,
+    growth_angle: 60,
     leaves_color: '#107027',
     branch_color: '#7d5757',
     thick_branch: false,
+    dense_tree_top: false,
+    wacky_tree: false,
     leaf_type: 1,
+    shader_type: 1,
+    background_type: 1,
     get LeafColor() { return hex2vec4(this.leaves_color); },
     get BranchColor() { return hex2vec4(this.branch_color); },
 };
@@ -6105,7 +6109,7 @@ function loadScene() {
     lsystem.branchCol = controls.BranchColor;
     lsystem.leafCol = controls.LeafColor;
     lsystem.leafDensity = controls.leaf_density;
-    lsystem.branchAngle = controls.branch_angle;
+    lsystem.branchAngle = controls.growth_angle;
     lsystem.processLsystem(controls.iterations);
 }
 function main() {
@@ -6120,11 +6124,15 @@ function main() {
     const gui = new __WEBPACK_IMPORTED_MODULE_2_dat_gui__["GUI"]();
     gui.add(controls, "iterations", 0, 8).step(1);
     gui.add(controls, "leaf_density", 0, 1);
-    gui.add(controls, "branch_angle", 0, 180);
+    gui.add(controls, "growth_angle", 0, 180);
     gui.addColor(controls, "leaves_color");
     gui.addColor(controls, "branch_color");
     gui.add(controls, "thick_branch");
+    gui.add(controls, "dense_tree_top");
+    gui.add(controls, "wacky_tree");
     gui.add(controls, "leaf_type", { Leaf: 1, Roses: 2, Stars: 3 });
+    gui.add(controls, "shader_type", { Lambert: 1, Flat: 2 });
+    gui.add(controls, "background_type", { Blue_Sky: 1, Orange_Horizon: 2, Purple_Night: 3 });
     console.log("leaftype", controls.leaf_type);
     // get canvas and webgl context
     const canvas = document.getElementById('canvas');
@@ -6148,9 +6156,19 @@ function main() {
         new __WEBPACK_IMPORTED_MODULE_8__rendering_gl_ShaderProgram__["a" /* Shader */](gl.VERTEX_SHADER, __webpack_require__(75)),
         new __WEBPACK_IMPORTED_MODULE_8__rendering_gl_ShaderProgram__["a" /* Shader */](gl.FRAGMENT_SHADER, __webpack_require__(76)),
     ]);
-    const flat = new __WEBPACK_IMPORTED_MODULE_8__rendering_gl_ShaderProgram__["b" /* default */]([
+    //lambert
+    const instancedLambertShader = new __WEBPACK_IMPORTED_MODULE_8__rendering_gl_ShaderProgram__["b" /* default */]([
         new __WEBPACK_IMPORTED_MODULE_8__rendering_gl_ShaderProgram__["a" /* Shader */](gl.VERTEX_SHADER, __webpack_require__(77)),
         new __WEBPACK_IMPORTED_MODULE_8__rendering_gl_ShaderProgram__["a" /* Shader */](gl.FRAGMENT_SHADER, __webpack_require__(78)),
+    ]);
+    //colorful background flat 
+    const backgroundFlat = new __WEBPACK_IMPORTED_MODULE_8__rendering_gl_ShaderProgram__["b" /* default */]([
+        new __WEBPACK_IMPORTED_MODULE_8__rendering_gl_ShaderProgram__["a" /* Shader */](gl.VERTEX_SHADER, __webpack_require__(79)),
+        new __WEBPACK_IMPORTED_MODULE_8__rendering_gl_ShaderProgram__["a" /* Shader */](gl.FRAGMENT_SHADER, __webpack_require__(80)),
+    ]);
+    const flat = new __WEBPACK_IMPORTED_MODULE_8__rendering_gl_ShaderProgram__["b" /* default */]([
+        new __WEBPACK_IMPORTED_MODULE_8__rendering_gl_ShaderProgram__["a" /* Shader */](gl.VERTEX_SHADER, __webpack_require__(81)),
+        new __WEBPACK_IMPORTED_MODULE_8__rendering_gl_ShaderProgram__["a" /* Shader */](gl.FRAGMENT_SHADER, __webpack_require__(82)),
     ]);
     //this function redraws the lsystem 
     function redrawLsystem(thick) {
@@ -6166,10 +6184,12 @@ function main() {
         }
         lsystem = new __WEBPACK_IMPORTED_MODULE_9__LSystem__["a" /* default */]('./obj/cylinderTest.obj', leafString);
         lsystem.setThick(thick);
+        lsystem.expRules.setTreeWacky(controls.wacky_tree);
+        lsystem.expRules.setDenseTreeTops(controls.dense_tree_top);
         lsystem.branchCol = controls.BranchColor;
         lsystem.leafCol = controls.LeafColor;
         lsystem.leafDensity = controls.leaf_density;
-        lsystem.branchAngle = controls.branch_angle;
+        lsystem.branchAngle = controls.growth_angle;
         lsystem.processLsystem(controls.iterations);
     }
     // This function will be called every frame 
@@ -6184,8 +6204,8 @@ function main() {
             numIterations = controls.iterations;
             redrawLsystem(controls.thick_branch);
         }
-        if (lsystem.branchAngle != controls.branch_angle) {
-            lsystem.branchAngle = controls.branch_angle;
+        if (lsystem.branchAngle != controls.growth_angle) {
+            lsystem.branchAngle = controls.growth_angle;
             redrawLsystem(controls.thick_branch);
         }
         if (!__WEBPACK_IMPORTED_MODULE_0_gl_matrix__["e" /* vec4 */].equals(lsystem.branchCol, controls.BranchColor) ||
@@ -6219,8 +6239,26 @@ function main() {
                 lsystem.render();
             }
         }
-        renderer.render(camera, flat, [screenQuad]);
-        renderer.render(camera, instancedMatShader, [lsystem.branchesGeom, lsystem.leafGeom]); //my test tree
+        //other booleans
+        if (lsystem.expRules.treeWacky != controls.wacky_tree || lsystem.expRules.denseTreeTops != controls.dense_tree_top) {
+            redrawLsystem(controls.thick_branch);
+        }
+        //set the sky type 
+        backgroundFlat.setSkyType(controls.background_type);
+        renderer.render(camera, backgroundFlat, [screenQuad]);
+        //based on the shader type we should update the render 
+        if (controls.shader_type == 1) {
+            //1 --> lambert 
+            renderer.render(camera, instancedLambertShader, [lsystem.branchesGeom, lsystem.leafGeom]); //my test tree
+        }
+        else if (controls.shader_type == 2) {
+            //2 --> flat 
+            renderer.render(camera, instancedMatShader, [lsystem.branchesGeom, lsystem.leafGeom]); //my test tree
+        }
+        else {
+            //default to lambert
+            renderer.render(camera, instancedLambertShader, [lsystem.branchesGeom, lsystem.leafGeom]); //my test tree
+        }
         stats.end();
         // Tell the browser to call `tick` again whenever it renders a new frame
         requestAnimationFrame(tick);
@@ -16528,6 +16566,7 @@ class ShaderProgram {
         this.unifEye = __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].getUniformLocation(this.prog, "u_Eye");
         this.unifRef = __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].getUniformLocation(this.prog, "u_Ref");
         this.unifUp = __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].getUniformLocation(this.prog, "u_Up");
+        this.unifSkyType = __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].getUniformLocation(this.prog, "u_SkyType"); //added this for sky type
         this.attrMatrixC0 = __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].getAttribLocation(this.prog, "vs_Matrix_col0"); //added for instanced matrix transformations
         this.attrMatrixC1 = __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].getAttribLocation(this.prog, "vs_Matrix_col1");
         this.attrMatrixC2 = __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].getAttribLocation(this.prog, "vs_Matrix_col2");
@@ -16585,6 +16624,13 @@ class ShaderProgram {
         this.use();
         if (this.unifTime !== -1) {
             __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].uniform1f(this.unifTime, t);
+        }
+    }
+    //added this
+    setSkyType(num) {
+        this.use();
+        if (this.unifSkyType !== -1) {
+            __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].uniform1f(this.unifSkyType, num);
         }
     }
     draw(d) {
@@ -16699,6 +16745,12 @@ class LSystem {
         this.leafType = 1; //stores the previous leafType
         this.branchesObj = branchObj;
         this.leafObj = leafObj;
+    }
+    setWacky(val) {
+        this.expRules.treeWacky = val;
+    }
+    getWacky() {
+        return this.expRules.treeWacky;
     }
     setThick(val) {
         this.drawRules.thick = val;
@@ -16825,7 +16877,11 @@ class DrawingRule {
         this.branchesMat = []; //use this
         this.leavesMat = [];
         this.thick = false;
-        let turtle = new __WEBPACK_IMPORTED_MODULE_1__Turtle__["a" /* default */](__WEBPACK_IMPORTED_MODULE_0_gl_matrix__["d" /* vec3 */].fromValues(0, 0, 0), __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["d" /* vec3 */].fromValues(0, 1, 0), __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["d" /* vec3 */].fromValues(1, 0, 0), 1, 0);
+        let turtle = new __WEBPACK_IMPORTED_MODULE_1__Turtle__["a" /* default */](__WEBPACK_IMPORTED_MODULE_0_gl_matrix__["d" /* vec3 */].fromValues(0, 0, 0), //pos
+        __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["d" /* vec3 */].fromValues(0, 1, 0), //orient
+        __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["d" /* vec3 */].fromValues(1, 0, 0), //right 
+        __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["d" /* vec3 */].fromValues(0, 0, 1), //forward
+        1, 0);
         this.turtleStack.push(turtle);
         this.drawingRules.set('A', this.drawBranch.bind(this, 0.2, 0.5));
         this.drawingRules.set('B', this.drawBranchEndOrLeaf.bind(this)); //make this drawLeaf
@@ -16833,6 +16889,7 @@ class DrawingRule {
         this.drawingRules.set(']', this.pop.bind(this));
         this.drawingRules.set('>', this.rotateRight.bind(this, 3, 10));
         this.drawingRules.set('^', this.rotateUp.bind(this, 100, 140));
+        this.drawingRules.set('<', this.rotateForward.bind(this, 5, 10));
         this.iteration = iter;
     }
     getRule(phrase) {
@@ -16847,6 +16904,10 @@ class DrawingRule {
     rotateUp(a, b) {
         let turtle = this.turtleStack[this.turtleStack.length - 1];
         turtle.rotateUp(randomRange(a, b));
+    }
+    rotateForward(a, b) {
+        let turtle = this.turtleStack[this.turtleStack.length - 1];
+        turtle.rotateForward(randomRange(a, b));
     }
     push() {
         let turtle = this.turtleStack[this.turtleStack.length - 1];
@@ -16873,7 +16934,7 @@ class DrawingRule {
         //HAVE THIS CODE IF "thin tree" is ticked
         if (!this.thick) {
             let position = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["d" /* vec3 */].create();
-            let s = 1 / Math.pow(1.2, this.iteration);
+            let s = 1 / Math.pow(1.25, this.iteration); //to make it thinner, make the first argument bigger (in the math.pow)
             branchLen = branchLen * s;
             branchScale = branchScale * s;
             __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["d" /* vec3 */].scale(position, turtle.position, s);
@@ -16959,10 +17020,10 @@ class DrawingRule {
         let numSegments = rand * 5 + 20;
         for (let i = 0; i < numSegments; i++) {
             this.drawBranch(depthLength * (1 - i / numSegments), depthLength * (1 - i / numSegments));
-            this.rotateUp(adding, adding);
-            if (rand > 0.5) {
-                this.rotateRight(10, 15);
-            }
+            // this.rotateUp(adding, adding);
+            // if (rand > 0.5) {
+            //     this.rotateRight(10, 15);
+            // }
         }
     }
     drawBranchEndOrLeaf() {
@@ -16997,15 +17058,16 @@ class DrawingRule {
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_gl_matrix__ = __webpack_require__(2);
 
 class Turtle {
-    constructor(pos, orient, right, step, depth) {
-        this.position = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["d" /* vec3 */].clone(pos);
-        this.orientation = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["d" /* vec3 */].clone(orient);
+    constructor(position, orientation, right, forward, step, depth) {
+        this.position = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["d" /* vec3 */].clone(position);
+        this.orientation = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["d" /* vec3 */].clone(orientation);
         this.right = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["d" /* vec3 */].clone(right);
+        this.forward = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["d" /* vec3 */].clone(forward);
         this.step = step;
         this.depth = depth;
     }
     static clone(inputTurtle) {
-        let copyTurtle = new Turtle(inputTurtle.position, inputTurtle.orientation, inputTurtle.right, inputTurtle.step, inputTurtle.depth);
+        let copyTurtle = new Turtle(inputTurtle.position, inputTurtle.orientation, inputTurtle.right, inputTurtle.forward, inputTurtle.step, inputTurtle.depth);
         return copyTurtle;
     }
     moveForward(length) {
@@ -17018,6 +17080,7 @@ class Turtle {
         let rotX = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* quat */].create();
         __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* quat */].setAxisAngle(rotX, this.right, angle);
         __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["d" /* vec3 */].transformQuat(this.orientation, this.orientation, rotX);
+        __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["d" /* vec3 */].transformQuat(this.forward, this.forward, rotX);
         //also have to rotate "upTemp" by rotX
     }
     rotateUp(angle) {
@@ -17025,10 +17088,18 @@ class Turtle {
         let rotY = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* quat */].create();
         __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* quat */].setAxisAngle(rotY, this.orientation, angle);
         __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["d" /* vec3 */].transformQuat(this.right, this.right, rotY);
+        __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["d" /* vec3 */].transformQuat(this.forward, this.forward, rotY);
         //also have to rotate "upTemp" by rotY
     }
+    rotateForward(angle) {
+        angle = angle * Math.PI / 180;
+        let rotZ = __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* quat */].create();
+        __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["c" /* quat */].setAxisAngle(rotZ, this.forward, angle);
+        __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["d" /* vec3 */].transformQuat(this.right, this.right, rotZ);
+        __WEBPACK_IMPORTED_MODULE_0_gl_matrix__["d" /* vec3 */].transformQuat(this.orientation, this.orientation, rotZ);
+    }
     //Z rotation kind of
-    // rotateUpTemp(ang: number) {
+    // rot ateUpTemp(ang: number) {
     //     ang = ang * Math.PI / 180;
     //     let rotZ: quat = quat.create();
     //     //upTemp would START as (0, 0, 1)
@@ -17134,7 +17205,6 @@ class Mesh extends __WEBPACK_IMPORTED_MODULE_0__rendering_gl_Drawable__["a" /* d
         __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].bufferData(__WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].ARRAY_BUFFER, this.positions, __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].STATIC_DRAW);
         __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].bindBuffer(__WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].ARRAY_BUFFER, this.bufUV);
         __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].bufferData(__WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].ARRAY_BUFFER, this.uvs, __WEBPACK_IMPORTED_MODULE_1__globals__["a" /* gl */].STATIC_DRAW);
-        console.log(`Created Mesh from OBJ`);
         this.objString = ""; // hacky clear
     }
     setInstanceVBOs(matrices, colors) {
@@ -17167,26 +17237,51 @@ class Mesh extends __WEBPACK_IMPORTED_MODULE_0__rendering_gl_Drawable__["a" /* d
 class ExpansionRules {
     constructor() {
         this.expansionRulesMap = new Map();
+        //booleans for tree grammar modification 
+        this.treeWacky = false;
+        this.denseTreeTops = false;
         this.expansionRulesMap.set('A', this.A);
         this.expansionRulesMap.set('B', this.B);
+        this.treeWacky = false;
+        this.denseTreeTops = false;
+    }
+    setTreeWacky(b) {
+        this.treeWacky = b;
+    }
+    setDenseTreeTops(b) {
+        this.denseTreeTops = b;
     }
     A() {
         let rand = Math.random();
+        //console.log(this);
+        let s = 'AA';
+        if (this.treeWacky) {
+            s = 'A<A';
+        }
         if (rand < 0.43)
-            return 'AA';
+            return s; //expands in the z axis if 'tree wacky' is selected 
         else
             return 'A^>A';
     }
     B() {
         let rand = Math.random();
+        let s = '[^+AB][+AB][^^+AB]';
+        if (this.denseTreeTops) {
+            s = '[^+AB][+AB][^^+AB][^AB]';
+        }
         if (rand < 0.35)
             return '[AB][^+AB]';
         else
-            return '[^+AB][+AB][^^+AB]';
+            return s; //make this string: '[^+AB][+AB][^^+AB][^AB]' if DENSE TREE TOPS is checked! 
     }
     expand(phrase) {
         let expansionFunction = this.expansionRulesMap.get(phrase);
-        return expansionFunction ? expansionFunction() : phrase;
+        if (expansionFunction) {
+            return expansionFunction.call(this); //need a reference to 'this' so this doesn't crash! 
+        }
+        else {
+            return phrase;
+        }
     }
 }
 /* harmony export (immutable) */ __webpack_exports__["a"] = ExpansionRules;
@@ -17209,10 +17304,34 @@ module.exports = "#version 300 es\r\nprecision highp float;\r\n\r\nin vec4 fs_Co
 /* 77 */
 /***/ (function(module, exports) {
 
-module.exports = "#version 300 es\nprecision highp float;\n\n// The vertex shader used to render the background of the scene\n\nin vec4 vs_Pos;\nout vec2 fs_Pos;\n\nvoid main() {\n  fs_Pos = vs_Pos.xy;\n  gl_Position = vec4(vs_Pos.xy, 0.999, 1.0);\n}\n"
+module.exports = "#version 300 es\r\n\r\nuniform mat4 u_ViewProj;\r\nuniform float u_Time;\r\n\r\nuniform mat3 u_CameraAxes; // Used for rendering particles as billboards (quads that are always looking at the camera)\r\nin vec4 vs_Pos; // Non-instanced; each particle is the same quad drawn in a different place\r\nin vec4 vs_Nor; // Non-instanced, and presently unused\r\nin vec4 vs_Col; // An instanced rendering attribute; each particle instance has a different color\r\nin vec3 vs_Translate; // Another instance rendering attribute used to position each quad instance in the scene\r\nin vec2 vs_UV; // Non-instanced, and presently unused in main(). Feel free to use it for your meshes.\r\nin vec4 vs_Matrix_col0; //the instanced transformation\r\nin vec4 vs_Matrix_col1; //the instanced transformation\r\nin vec4 vs_Matrix_col2; //the instanced transformation\r\nin vec4 vs_Matrix_col3; //the instanced transformation\r\n\r\nout vec4 fs_Col;\r\nout vec4 fs_Pos;\r\n\r\n//for lambert\r\nout vec4 fs_Nor; \r\nout vec4 fs_LightDir; \r\n\r\n//set a location for the light vec\r\n//const vec4 lightFixed = vec4(50, 10, 50, 1); \r\nconst vec4 lightFixed = vec4(15, 15, -100, 1); //use same camera position from the main file \r\n\r\nvoid main()\r\n{\r\n    fs_Col = vs_Col;\r\n    fs_Pos = vs_Pos;\r\n    mat4 transform = mat4(vs_Matrix_col0, vs_Matrix_col1, vs_Matrix_col2, vs_Matrix_col3);\r\n    vec4 transformed = transform * vs_Pos; \r\n\r\n    //lambert variables\r\n    mat3 norMat = inverse(transpose(mat3(transform))); \r\n    fs_Nor = vec4(norMat * vec3(vs_Nor), 0.0); \r\n    fs_LightDir = lightFixed - transformed; \r\n\r\n    gl_Position = u_ViewProj * transformed; \r\n}\r\n\r\n//apply transformation \r\n//vec4 tp = M * vs_Pos\r\n//glpos = viewproj * tp "
 
 /***/ }),
 /* 78 */
+/***/ (function(module, exports) {
+
+module.exports = "#version 300 es\r\nprecision highp float;\r\n\r\nin vec4 fs_Col;\r\nin vec4 fs_Pos;\r\n\r\n//ins for lambert\r\nin vec4 fs_Nor; \r\nin vec4 fs_LightDir; \r\n\r\nout vec4 out_Col;\r\n\r\nvoid main()\r\n{\r\n\r\n    float diffuseTerm = dot(normalize(fs_Nor), normalize(fs_LightDir)); \r\n    float ambientTerm = 0.25; \r\n    float lightIntensity = diffuseTerm + ambientTerm; \r\n\r\n    out_Col = vec4(fs_Col.rgb * lightIntensity, fs_Col.a); \r\n\r\n    //out_Col = fs_Col;\r\n}\r\n"
+
+/***/ }),
+/* 79 */
+/***/ (function(module, exports) {
+
+module.exports = "#version 300 es\r\nprecision highp float;\r\n\r\n// The vertex shader used to render the background of the scene\r\n\r\nin vec4 vs_Pos;\r\nout vec2 fs_Pos;\r\n\r\nvoid main() {\r\n  fs_Pos = vs_Pos.xy;\r\n  gl_Position = vec4(vs_Pos.xy, 0.999, 1.0);\r\n}\r\n"
+
+/***/ }),
+/* 80 */
+/***/ (function(module, exports) {
+
+module.exports = "#version 300 es\r\nprecision highp float;\r\n\r\nuniform vec3 u_Eye, u_Ref, u_Up;\r\nuniform vec2 u_Dimensions;\r\nuniform float u_Time;\r\n\r\nuniform float u_SkyType; //sky type! \r\n\r\nin vec2 fs_Pos;\r\nout vec4 out_Col;\r\n\r\n\r\nconst float TWO_PI = 6.28318530718;\r\nconst float PI = 3.14159265359;\r\nvec2 sphereToUV(vec3 p) {\r\n\r\n    float phi = atan(p.z, p.x);\r\n    if (phi < 0.0) {\r\n        phi += TWO_PI;\r\n    }\r\n\r\n    float theta = acos(p.y);\r\n\r\n    return vec2(1.0 - phi / TWO_PI, 1.0 - theta / PI);\r\n}\r\n\r\n// sunset palette\r\nconst vec3 sunset[5] = vec3[](vec3(255, 229, 119) / 255.0, // yellow\r\n                            vec3(254, 192, 81) / 255.0, // orange\r\n                            vec3(255, 137, 103) / 255.0, // grapefruit\r\n                            vec3(253, 96, 81) / 255.0, // rose pink\r\n                            vec3(57, 32, 51) / 255.0); // dark purple\r\n\r\n                            // dusk palette\r\nconst vec3 dusk[5] = vec3[](vec3(144, 96, 144) / 255.0, // light purple\r\n                            vec3(96, 72, 120) / 255.0, // purple grape\r\n                            vec3(72, 48, 120) / 255.0, // dark blue\r\n                            vec3(48, 24, 96) / 255.0, // dark night\r\n                            vec3(0, 24, 72) / 255.0); // dark cyan\r\n\r\n// dusk palette\r\nconst vec3 noon[5] = vec3[] (vec3(204, 240, 255) / 255.0,\r\n                            vec3(178, 232, 255) / 255.0,\r\n                            vec3(153, 225, 255) / 255.0,\r\n                            vec3(127, 218, 255) / 255.0,\r\n                            vec3(102, 210, 255) / 255.0);\r\n\r\nconst vec3 sunrise[5] = vec3[](vec3(255,215,0) / 255.0,\r\n                            vec3(255,165,0) / 255.0,\r\n                            vec3(255,140,0) / 255.0,\r\n                            vec3(255,127,80) / 255.0,\r\n                            vec3(255,99,71) / 255.0);\r\n\r\nconst vec3 sunColor = vec3(255, 255, 190) / 255.0;\r\nconst vec3 cloudColor = sunset[3];\r\n\r\nvec3 uvToSunrise(vec2 uv) {\r\n    if (uv.y < 0.5) {\r\n        return sunrise[0];\r\n    } else if (uv.y < 0.55) {\r\n        return mix(sunrise[0], sunrise[1], (uv.y - 0.5) / 0.05);\r\n    } else if (uv.y < 0.6) {\r\n        return mix(sunrise[1], sunrise[2], (uv.y - 0.55) / 0.05);\r\n    } else if (uv.y < 0.65) {\r\n        return mix(sunrise[2], sunrise[3], (uv.y - 0.6) / 0.05);\r\n    } else if (uv.y < 0.75) {\r\n        return mix(sunrise[3], sunrise[4], (uv.y - 0.65) / 0.1);\r\n    }\r\n    return sunrise[4];\r\n}\r\n\r\nvec3 uvToNoon(vec2 uv) {\r\n    if (uv.y < 0.5) {\r\n        return noon[0];\r\n    } else if (uv.y < 0.55) {\r\n        return mix(noon[0], noon[1], (uv.y - 0.5) / 0.05);\r\n    } else if (uv.y < 0.6) {\r\n        return mix(noon[1], noon[2], (uv.y - 0.55) / 0.05);\r\n    } else if (uv.y < 0.65) {\r\n        return mix(noon[2], noon[3], (uv.y - 0.6) / 0.05);\r\n    } else if (uv.y < 0.75) {\r\n        return mix(noon[3], noon[4], (uv.y - 0.65) / 0.1);\r\n    }\r\n    return noon[4];\r\n}\r\n\r\n// map uv to sunset palette\r\n// assign colors based on y coordinate of uv\r\n// interpolate between predefined intervals\r\nvec3 uvToSunset(vec2 uv) {\r\n    if (uv.y < 0.5) {\r\n        return sunset[0];\r\n    } else if (uv.y < 0.55) {\r\n        return mix(sunset[0], sunset[1], (uv.y - 0.5) / 0.05);\r\n    } else if (uv.y < 0.6) {\r\n        return mix(sunset[1], sunset[2], (uv.y - 0.55) / 0.05);\r\n    } else if (uv.y < 0.65) {\r\n        return mix(sunset[2], sunset[3], (uv.y - 0.6) / 0.05);\r\n    } else if (uv.y < 0.75) {\r\n        return mix(sunset[3], sunset[4], (uv.y - 0.65) / 0.1);\r\n    }\r\n    return sunset[4];\r\n}\r\n\r\n// map uv to dusk palette\r\nvec3 uvToDusk(vec2 uv) {\r\n    if(uv.y < 0.5) {\r\n        return dusk[0];\r\n    }\r\n    else if(uv.y < 0.55) {\r\n        return mix(dusk[0], dusk[1], (uv.y - 0.5) / 0.05);\r\n    }\r\n    else if(uv.y < 0.6) {\r\n        return mix(dusk[1], dusk[2], (uv.y - 0.55) / 0.05);\r\n    }\r\n    else if(uv.y < 0.65) {\r\n        return mix(dusk[2], dusk[3], (uv.y - 0.6) / 0.05);\r\n    }\r\n    else if(uv.y < 0.75) {\r\n        return mix(dusk[3], dusk[4], (uv.y - 0.65) / 0.1);\r\n    }\r\n    return dusk[4];\r\n}\r\n\r\n\r\nvec4 getMorningColor(vec3 rayDir) {\r\n  vec2 uv = sphereToUV(rayDir); \r\n\r\n   // compute a gradient from the bottom of the sky-sphere to the top\r\n\r\n    // uv is not noise, uv is perturbed by noise\r\n    vec3 sunsetColor = uvToSunset(uv); //+ offset * 0.1);\r\n    vec3 duskColor = uvToDusk(uv); //+ offset * 0.1);\r\n    vec3 noonColor = uvToNoon(uv);\r\n    vec3 sunriseColor = uvToSunrise(uv);\r\n\r\n    //blue sky \r\n    vec3 outColor =  mix(noonColor, duskColor,  u_Dimensions.y - fs_Pos.y );\r\n\r\n    if (u_SkyType == 1.) {\r\n        //blue sky \r\n        outColor =  mix(noonColor, duskColor,  u_Dimensions.y - fs_Pos.y );\r\n    } else if (u_SkyType == 2.) {\r\n        //orange horizon \r\n        outColor =  mix(sunriseColor, duskColor,  u_Dimensions.y - fs_Pos.y );\r\n    } else if (u_SkyType == 3.) {\r\n        //magenta night \r\n        outColor =  mix(sunsetColor, noonColor * 0.15,  u_Dimensions.y + fs_Pos.y );\r\n    }\r\n\r\n    return vec4(outColor, 1.0); \r\n\r\n\r\n}\r\n\r\n//raycasting function \r\nvec3 rayCast(vec3 eye) {\r\n\r\n  vec3 forward = normalize(u_Ref - eye);\r\n  vec3 right = normalize(cross(forward, u_Up));\r\n\r\n  float FOVY = 45.0; \r\n  float angleTerm = tan(FOVY / 2.0);\r\n  float aspectRatio = u_Dimensions.x / u_Dimensions.y; \r\n  vec3 V = (u_Up) * angleTerm;\r\n  vec3 H = right * aspectRatio * angleTerm;\r\n  vec3 point = forward + (fs_Pos.x * H) + (fs_Pos.y * V);\r\n\r\n  return normalize(point);\r\n\r\n}\r\n\r\nvoid main() {\r\n    vec2 uv = fs_Pos.xy / u_Dimensions.xy;\r\n    uv.x -= 0.5; \r\n    uv.x *= u_Dimensions.x / u_Dimensions.y;  \r\n    // sky\r\n    vec3 color = mix(vec3(255.,212.,166.) / 255., vec3(204.,235.,255.) / 255., uv.y);\r\n\r\n\r\n    out_Col = vec4(fs_Pos, fs_Pos.x, 1.0); \r\n\r\n    //trying other stuff\r\n\r\n    vec3 rayDir = rayCast(u_Eye); \r\n     out_Col = getMorningColor(rayDir);\r\n   // out_Col = vec4(0.5 * (fs_Pos + vec2(1.0)), 0.5 * (sin(u_Time * 3.14159 * 0.01) + 1.0), 1.0);\r\n\r\n}\r\n"
+
+/***/ }),
+/* 81 */
+/***/ (function(module, exports) {
+
+module.exports = "#version 300 es\nprecision highp float;\n\n// The vertex shader used to render the background of the scene\n\nin vec4 vs_Pos;\nout vec2 fs_Pos;\n\nvoid main() {\n  fs_Pos = vs_Pos.xy;\n  gl_Position = vec4(vs_Pos.xy, 0.999, 1.0);\n}\n"
+
+/***/ }),
+/* 82 */
 /***/ (function(module, exports) {
 
 module.exports = "#version 300 es\nprecision highp float;\n\nuniform vec3 u_Eye, u_Ref, u_Up;\nuniform vec2 u_Dimensions;\nuniform float u_Time;\n\nin vec2 fs_Pos;\nout vec4 out_Col;\n\nvoid main() {\n  out_Col = vec4(196.0, 255.0, 217.0, 255.0) / 255.0;\n}\n"
